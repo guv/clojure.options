@@ -1,4 +1,5 @@
-# clojure.options
+clojure.options
+=======================
 
 FIXME: write description
 
@@ -6,8 +7,9 @@ FIXME: write description
 
 FIXME: write
 
-## License
+License
+==============
 
-Copyright (C) 2011 FIXME
+Copyright (C) 2012 Gunnar Völkel
 
 Distributed under the Eclipse Public License, the same as Clojure.

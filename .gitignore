@@ -6,3 +6,4 @@ pom.xml
 .lein-deps-sum
 /bin/
 autodoc/**
+.settings/ccw.repl.cmdhistory.prefs
