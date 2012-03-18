@@ -1,5 +1,5 @@
-clojure.options
-=======================
+# clojure.options
+
 
 FIXME: write description
 
@@ -7,8 +7,7 @@ FIXME: write description
 
 FIXME: write
 
-License
-==============
+## License
 
 Copyright (C) 2012 Gunnar Völkel
 
