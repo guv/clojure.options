@@ -128,6 +128,13 @@
   (int->str 13 :base 3) => "111"
   (int->str 13 :base 9) => "14")
 
+(require 'clojure.string)
+
+(defn+opts convert-ints
+  "Converts all integers in a string to another base."
+  [s | :as options]
+  (clojure.string/replace s #"\d+" #(-> % Integer/parseInt (int->str options))))
+
 (defn+opts do-sth 
   [x | {mode (choice :equal :dec :inc)}]
   (case mode
