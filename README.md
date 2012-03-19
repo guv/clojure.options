@@ -18,7 +18,7 @@ Add the following to your ```project.clj``` to let Leiningen install ```clojure.
 
 ## Usage
 
-The following example shows the basic syntax for a function with the optional parameter 'base with default value 10.
+The following example shows the basic syntax for a function definition with the optional parameter ```base``` with default value ```10```.
 
 ```clj
 (defn+opts int->str
@@ -64,7 +64,7 @@ The main goal of this library is illustrated with the following function definit
 ```
 
 The function ```convert-ints``` uses ```int->str``` to convert all integers of a given string.
-Therefore, it forwards the specified options in the ```convert-ints``` call to the ```int->str`` function.
+Therefore, it forwards the specified options in the ```convert-ints``` call to the ```int->str``` function.
 
 ```clj
 (convert-ints "There are 2 types of people ..." :base 2)
