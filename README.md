@@ -10,9 +10,9 @@ then the docstring of ```f``` will contain information about the optional parame
 
 ## Install
 
-Add the following to your project.clj to let Leiningen install clojure.options for you:
+Add the following to your ```project.clj``` to let Leiningen install ```clojure.options``` for you:
 
-```
+```clj
 :dependencies [[clojure.options 0.2.0]]
 ```
 
@@ -42,22 +42,53 @@ A call to that function looks like:
 
 The documentation for ```int->str``` looks like
 
-```
+```clj
 (doc int->str)
--------------------------
-clojure.options-tests/int->str
-([x & options])
-  Converts a given positive integer into a string.
-
-  The following options (in 'options) can be specified:
-    :base  The base to use for string encoding (<= 10).  [default = 10]
-nil
+;-------------------------
+;clojure.options-tests/int->str
+;([x & options])
+;  Converts a given positive integer into a string.
+;
+;  The following options (in 'options) can be specified:
+;    :base  The base to use for string encoding (<= 10).  [default = 10]
+;=> nil
 ```
 
-FIXME: write
+The main goal of this library is illustrated with the following function definition:
+
+```clj
+(defn+opts convert-ints
+  "Converts all integers in a string to another base."
+  [s | :as options]
+  (clojure.string/replace s #"\d+" #(-> % Integer/parseInt (int->str options))))
+```
+
+The function ```convert-ints``` uses ```int->str``` to convert all integers of a given string.
+Therefore, it forwards the specified options in the ```convert-ints``` call to the ```int->str`` function.
+
+```clj
+(convert-ints "There are 2 types of people ..." :base 2)
+;=> "There are 10 types of people ..."
+```
+
+The documentation of ```convert-ints``` looks like:
+
+```clj
+(doc convert-ints)
+;-------------------------
+;clojure.options-tests/convert-ints
+;([s & options])
+;  Converts all integers in a string to another base.
+;
+;  The following options (in 'options) can be specified:
+;
+;    Passed to function clojure.options-tests/int->str:
+;      :base  The base to use for string encoding (<= 10).  [default = 10]
+;=> nil
+```
 
 ## License
 
-Copyright (C) 2012 Gunnar Völkel
+Copyright © 2012 Gunnar Völkel
 
 Distributed under the Eclipse Public License, the same as Clojure.
