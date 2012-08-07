@@ -280,17 +280,17 @@
     ""))
 
 (defn ^{:skip-wiki true} update-doc
-  [fn-doc, opt-name, options-meta-map]
+  [fn-doc, options-meta-map]
   (let [my-options (->> options-meta-map :options :mine vals (sort-by :name) seq),
         other-options (sort-by key (-> options-meta-map :options (dissoc :mine)))]
     (if (or my-options (and (seq other-options) (some #(some seq (val %)) other-options)))
       (str 
         (when fn-doc
           (str (remove-option-doc my-options, fn-doc) nnl0))
-        "The following options (in '" opt-name ") can be specified:"
+        "The following options can be specified:"
         (when (seq my-options)
           (str nl1 (option-str nl1, my-options)))
-        nnl1
+        (when (seq other-options) nnl1)
         (->> other-options
           (filter #(-> % val vals seq))
           (map #(str "Passed to function " (key %) ":" nl2 (option-str nl2, (vals (val %)))) )
@@ -322,16 +322,21 @@
   (let [options-symb (gensym "options_"),
         choice-params (filter #(contains? % :alternatives) (vals options-map))]
     (if (seq choice-params)
-	   `(fn [option-list#]
-		    (let [~options-symb (when (seq option-list#) (apply hash-map option-list#))]
+	   `(fn [option-map#]
+		    (let [~options-symb (when (seq option-map#) (into {} option-map#))]
 		      ~@(map (partial create-param-check options-symb) choice-params)))
-     `(fn [option-list#] nil))))
+     `(fn [option-map#]))))
+
+(defn ^{:skip-wiki true} maybe-set-default-values
+  [default-map, option-map]
+  
+)
 
 (defn ^{:skip-wiki true} create-defn+opts-decl
   "Creates the code that declares a function with optional parameters and meta information about them."
   [fname, meta-map, param-symb-list, opt-decl, body]
   (let [as? (-> opt-decl butlast last (= :as)),
-        opt-name (if as? (last opt-decl) 'options),
+        opt-name (if as? (last opt-decl) (gensym "options_")),
         opt-decl (if as? (drop-last 2 opt-decl) opt-decl),
         opt-decl (when (seq opt-decl) (apply concat opt-decl)),
         {default-params true, params false} (group-by coll? opt-decl),
@@ -343,34 +348,36 @@
           (assoc-in [:options :mine] (create-param-meta (:doc meta-map), default-params, params))
           (assoc :mandatory-parameters (vec param-symb-list))
           (update-in [:options] merge (find-transitive-options opt-name, body))),
-        destruct-form 
-        (hash-map 
-          :keys option-symbols, 
-          :or 
-          (into {} 
-            (map #(vector (:name %) (:default %)) 
-                 (filter #(-> % :default nil? not) (vals (get-in options-meta-map [:options :mine])))))),
-        meta-map (update-in meta-map [:doc] update-doc, opt-name, options-meta-map),
+        
+        meta-map (update-in meta-map [:doc] update-doc, options-meta-map)
+        default-map (->> (get-in options-meta-map [:options :mine])
+                      vals
+                      (remove #(-> % :default nil?))
+                      (map (fn [param-info] [(-> param-info :name keyword) (:default param-info)]))
+                      (into {})),
         check-choice (check-choice-fn (-> options-meta-map :options :mine)) 
        ]
    `(do
       (defn ~fname ~meta-map ~param-vec        
 	      (let [~opt-name 
-              (cond 
-                (nil? ~opt-name) 
-                  '(),                
-                (= 1 (count ~opt-name))               
+              (cond
+                (nil? ~opt-name)
+                  {},
+                (= 1 (count ~opt-name))
                   (if (-> ~opt-name first meta ::option-map)
                     (first ~opt-name)
-                    (throw (IllegalArgumentException. (format "An option list is expected when calling function \"%s\" with only one parameter!" (str ~fname))))
-                  )
+                    (throw 
+                      (IllegalArgumentException. 
+                        (format "An option list is expected when calling function \"%s\" with only one parameter!" (str ~fname)))))
                 :else
-                  ~opt-name)]
+                  (apply hash-map ~opt-name))]
           (~check-choice ~opt-name)
-          (let [~destruct-form ~opt-name,
+          (let [~@(when (seq default-map) [opt-name `(merge ~default-map ~opt-name)]),
+                {:keys ~option-symbols} ~opt-name,
 		            ~opt-name (vary-meta ~opt-name assoc ::option-map true)]
             ~@body)))
       (alter-meta! #'~fname merge '~options-meta-map)
+      (alter-meta! #'~fname assoc :arglists (list '~(conj (vec param-symb-list) '& 'options)))
       #'~fname)))
 
 ; Does not support using previous declared parameters as default values.

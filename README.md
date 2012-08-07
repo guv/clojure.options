@@ -13,7 +13,7 @@ then the docstring of ```f``` will contain information about the optional parame
 Add the following to your ```project.clj``` to let Leiningen install ```clojure.options``` for you:
 
 ```clj
-:dependencies [[clojure.options 0.2.0]]
+:dependencies [[clojure.options 0.2.1]]
 ```
 
 ## Usage
@@ -45,11 +45,11 @@ The documentation for ```int->str``` looks like
 ```clj
 (doc int->str)
 ;-------------------------
-;clojure.options-tests/int->str
+;clojure.options/int->str
 ;([x & options])
 ;  Converts a given positive integer into a string.
 ;
-;  The following options (in 'options) can be specified:
+;  The following options can be specified:
 ;    :base  The base to use for string encoding (<= 10).  [default = 10]
 ;=> nil
 ```
@@ -76,13 +76,13 @@ The documentation of ```convert-ints``` looks like:
 ```clj
 (doc convert-ints)
 ;-------------------------
-;clojure.options-tests/convert-ints
+;clojure.options/convert-ints
 ;([s & options])
 ;  Converts all integers in a string to another base.
 ;
-;  The following options (in 'options) can be specified:
+;  The following options can be specified:
 ;
-;    Passed to function clojure.options-tests/int->str:
+;    Passed to function clojure.options/int->str:
 ;      :base  The base to use for string encoding (<= 10).  [default = 10]
 ;=> nil
 ```

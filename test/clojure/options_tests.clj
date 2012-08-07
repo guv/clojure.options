@@ -159,3 +159,14 @@
 (facts "only one body allowed"
    (eval '(defn+opts error ([x] x) ([x y] (+ x y)))) => throws
    (eval '(defn+opts error ([x] x))) => var?)
+
+
+(defn+opts merge-defaults
+  [x | {a 23, b 42} :as options]
+  (assoc options :x x))
+
+(facts "setting default values"
+  (merge-defaults 1) => {:x 1 :a 23 :b 42}
+  (merge-defaults 10 :a 99) => {:x 10 :a 99 :b 42}
+  (merge-defaults 3 :b 33) => {:x 3 :a 23 :b 33}
+  (merge-defaults "world" :a 999 :b 333) => {:x "world" :a 999 :b 333})

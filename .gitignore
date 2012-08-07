@@ -7,3 +7,4 @@ pom.xml
 /bin/
 autodoc/**
 .settings/ccw.repl.cmdhistory.prefs
+/target
