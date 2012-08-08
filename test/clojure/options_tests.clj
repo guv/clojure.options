@@ -170,3 +170,41 @@
   (merge-defaults 10 :a 99) => {:x 10 :a 99 :b 42}
   (merge-defaults 3 :b 33) => {:x 3 :a 23 :b 33}
   (merge-defaults "world" :a 999 :b 333) => {:x "world" :a 999 :b 333})
+
+
+(defn+opts caller-spec
+  [x | :as options]
+  (merge-defaults x, :a 90, options))
+
+(facts "'caller-spec meta"
+  (resolve 'caller-spec) => truthy
+  (meta #'caller-spec) => (contains {:clojure.options/defn+opts true, :options anything, :mandatory-parameters ['x]})
+  (-> #'caller-spec meta :options) => 
+    (contains {'clojure.options-tests/merge-defaults (just {'a {:name 'a, :default 90} 'b {:name 'b, :default 42}})}))
+
+(facts "caller-specified defaults are overridable"
+   (caller-spec 1) => {:x 1 :a 90 :b 42}
+   (caller-spec 10 :a -42) => {:x 10 :a -42 :b 42})
+
+
+(defn+opts caller-spec-apply
+  [x | :as options]
+  (apply merge-defaults x, :a 90, options))
+
+(facts "'caller-spec-apply meta"
+  (resolve 'caller-spec-apply) => truthy
+  (meta #'caller-spec-apply) => (contains {:clojure.options/defn+opts true, :options anything, :mandatory-parameters ['x]})
+  (-> #'caller-spec-apply meta :options) => 
+    (contains {'clojure.options-tests/merge-defaults (just {'a {:name 'a, :default 90} 'b {:name 'b, :default 42}})}))
+
+(facts "caller-specified defaults are overridable when using apply"
+   (caller-spec-apply 1) => {:x 1 :a 90 :b 42}
+   (caller-spec-apply 10 :a -42) => {:x 10 :a -42 :b 42})
+
+(facts "passing the option map is only allowed at the last position of the form"   
+   (eval '(defn+opts option-error [x | :as options] (merge-defaults x options :a 20))) => throws
+   (eval '(defn+opts option-error [x | :as options] (merge-defaults x :a 20 options))) => var?
+   (eval '(defn+opts option-error2 [x | :as options] (apply merge-defaults x options :a 20))) => throws
+   (eval '(defn+opts option-error [x | :as options] (apply merge-defaults x :a 20 options))) => var?)
+
+

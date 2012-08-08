@@ -134,17 +134,6 @@
       (when-let [f (try (var-get v) (catch IllegalStateException e nil))]
         (and (fn? f) (-> v meta ::defn+opts))))))
 
-(defn ^{:skip-wiki true} option-fn-call?
-  "Is the given form a call to a function also defined via defn+opts with the given option symbol as last parameter?"
-  [opt-name, form] 
-  (and (option-fn? (first form)) (= (last form) opt-name)))
-
-(defn ^{:skip-wiki true} option-fn-apply?
-  "Is the given form an 'apply call to a function that is also defined via defn+opts and has the given options symbol as last parameter?"
-  [opt-name, form] 
-  (and (= (first form) 'apply) (option-fn? (second form)) (= (last form) opt-name)))
-
-
 (defn ^{:skip-wiki true} macroexpand!
   "Return a non-macro form of the given form. 
   In case the form is a macro call it is expanded via macroexpand-1 until it cannot be expanded again."
@@ -178,6 +167,40 @@
     options
     (keys options)))
 
+(defn ^{:skip-wiki true} update-parameter-defaults
+  [options, [param-key default-value]]
+  (let [param-symb (-> param-key name symbol)]
+    (reduce
+      #(assoc-in %1 [%2 param-symb :default] default-value)
+      options
+      (keys options))))
+
+(defn ^{:skip-wiki true} transitive-options-update
+  "If the given form is a call to another defn+opts function and it contains the option map, then add its options to the found-options.
+  Otherwise, return the found-options unchanged."
+  [opt-name, found-options, form]
+  (or
+    (let [option-fn-call? (option-fn? (first form)),
+          option-fn-apply? (and (= (first form) 'apply) (option-fn? (second form)))]
+      (when (or option-fn-call? option-fn-apply?)
+        (let [fsymb (if option-fn-call? (first form) (second form))
+              fmeta (-> fsymb resolve meta),
+              n-params (-> fmeta :mandatory-parameters count),
+              params (if option-fn-call? (drop (+ 1 n-params) form) (drop (+ 2 n-params) form))
+              ]
+          (when (some #{opt-name} params)
+            (if (= (last params) opt-name)
+              (let [given-options (butlast params),
+                    options (->> given-options
+                              (partition-all 2)
+                              (reduce update-parameter-defaults (:options fmeta)))]
+                (merge found-options (rename-keys options {:mine (resolve-symbol fsymb)})))
+              (throw
+                (IllegalArgumentException. 
+                  (format "Option map \"%s\" has to be the last parameter in the form %s!" opt-name (str form)))))))))
+    found-options))
+
+
 (defn ^{:skip-wiki true} find-transitive-options
   "Find all options in the given implementation body that are passed on by the options symbol specified in defn+opts 
   to other functions defined via defn+opts."
@@ -189,36 +212,7 @@
           ; determine child forms
           (concat (rest form-list) (child-forms form)),
           ; determine transitive options if present
-		      (cond
-		        (option-fn-call? opt-name, form)
-              (let [fsymb (first form)]
-                ; merge options after replacing the :mine key by the full qualified symbol
-                (merge found-options                  
-                  (-> fsymb resolve meta :options (rename-keys {:mine (resolve-symbol fsymb)}) )))
-            ; case (apply f ... options)
-		        (option-fn-apply? opt-name, form)
-              (let [
-                    fsymb (second form),
-                    fmeta (-> fsymb resolve meta),
-                    ; calculate elements to skip = 2 (apply + fsymb) + #mandatory-parameter
-                    drop-count (+ 2 (count (:mandatory-parameters fmeta)))
-                    options
-                    ; excluded options that are used in the 'apply function call from the documentation
-                    (->> form
-                      ; exclude 'apply, function name, mandatory parameters ... 
-		                  (drop drop-count)
-                      ; ... and the option symbol at the end of the form.
-		                  butlast
-                      ; select keys of given options
-		                  (take-nth 2)
-                      ; build symbols from the selected keys
-                      (map (comp symbol name))
-                      ; remove the selected symbols from the option map
-                      (reduce remove-parameter (:options fmeta)))]
-                ; add the options from the 'apply function call to the found options under the symbol of the called function
-                (merge found-options (rename-keys options {:mine (resolve-symbol fsymb)})))
-		        :else
-		          found-options)))
+		      (transitive-options-update opt-name, found-options, form)))
       found-options)))
 
 
@@ -327,10 +321,27 @@
 		      ~@(map (partial create-param-check options-symb) choice-params)))
      `(fn [option-map#]))))
 
-(defn ^{:skip-wiki true} maybe-set-default-values
-  [default-map, option-map]
-  
-)
+(defn ^{:skip-wiki true} build-option-map
+  [option-args]
+  (loop [option-args (seq option-args), option-map (transient {})]
+    (if option-args
+      (let [a (first option-args),
+            b (second option-args)]
+        (cond
+          (keyword? a)
+            ; if a is a keyword, then assoc the value b with key a to the option map.
+            (recur (nnext option-args), (assoc! option-map a b))
+          (-> a meta ::option-map)
+            ; if a is an option map, then add its key-val-pairs to the option map.
+            (recur (next option-args), (reduce conj! option-map a))
+          (instance? clojure.lang.IMapEntry a)
+            ; if a is a map entry, then add it to the option map.
+            (recur (next option-args), (conj! option-map a))
+          :else
+            (throw 
+              (IllegalArgumentException. 
+                (format "Found unknown value of unknown type \"%s\" in the optional argument list!" (type a))))))
+      (persistent! option-map))))
 
 (defn ^{:skip-wiki true} create-defn+opts-decl
   "Creates the code that declares a function with optional parameters and meta information about them."
@@ -346,9 +357,10 @@
         (-> {} 
           (assoc ::defn+opts true) 
           (assoc-in [:options :mine] (create-param-meta (:doc meta-map), default-params, params))
-          (assoc :mandatory-parameters (vec param-symb-list))
-          (update-in [:options] merge (find-transitive-options opt-name, body))),
-        
+          (assoc :mandatory-parameters (vec param-symb-list))),
+        options-meta-map (if as?
+                           (update-in options-meta-map [:options] merge (find-transitive-options opt-name, body))
+                           options-meta-map),        
         meta-map (update-in meta-map [:doc] update-doc, options-meta-map)
         default-map (->> (get-in options-meta-map [:options :mine])
                       vals
@@ -359,18 +371,7 @@
        ]
    `(do
       (defn ~fname ~meta-map ~param-vec        
-	      (let [~opt-name 
-              (cond
-                (nil? ~opt-name)
-                  {},
-                (= 1 (count ~opt-name))
-                  (if (-> ~opt-name first meta ::option-map)
-                    (first ~opt-name)
-                    (throw 
-                      (IllegalArgumentException. 
-                        (format "An option list is expected when calling function \"%s\" with only one parameter!" (str ~fname)))))
-                :else
-                  (apply hash-map ~opt-name))]
+	      (let [~opt-name (build-option-map ~opt-name)]
           (~check-choice ~opt-name)
           (let [~@(when (seq default-map) [opt-name `(merge ~default-map ~opt-name)]),
                 {:keys ~option-symbols} ~opt-name,
