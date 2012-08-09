@@ -105,10 +105,11 @@
   (g 10 :call-f true :delta 5) => 16)
 
 
-(defn+opts int->str
+(defn+opts ^{:awesome true} int->str
   "Converts a given positive integer into a string.
   <base>The base to use for string encoding (<= 10).</base>
   "
+  {:used-meta-map true}
   [x | {base 10}]
   (loop [x x, digits (list)]
     (if (pos? x)
@@ -118,6 +119,7 @@
 (facts "'int->str meta"
   (resolve 'int->str) => truthy
   (meta #'int->str) => (contains {:clojure.options/defn+opts true, :options anything, :mandatory-parameters ['x]})
+  (meta #'int->str) => (contains {:awesome true, :used-meta-map true}),
   (-> #'int->str meta :options) => (contains {:mine (just {'base {:name 'base, :default 10, :doc "The base to use for string encoding (<= 10)."}})})
   (-> #'int->str meta :doc) => (and #"Converts a given positive integer into a string\." #":base" #"The base to use for string encoding \(<= 10\)\.")
   (-> #'int->str meta :doc) =not=> (or #"<base>" #"</base>"))

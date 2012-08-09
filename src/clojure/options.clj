@@ -28,7 +28,7 @@
   Returns the map {:meta-map metadata, :body-list func-body} with the meta data of the function
   and the list of function bodies.
   "
-  [func-decl]
+  [fname, func-decl]
   (let [
 			  ; extract doc string (if present) and create metadata map
 			  meta-map (if (string? (first func-decl)) 
@@ -57,7 +57,9 @@
 			  ; remove metadata at the end if present
 			  func-decl (if (map? (last func-decl))
 			              (butlast func-decl)
-			              func-decl)
+			              func-decl),
+        ; merge metadata of the function name symbol with the collected metadata 
+        meta-map (merge (meta fname) meta-map)
        ]
      {:meta-map meta-map, :body-list func-decl}))
 
@@ -385,7 +387,7 @@
 (defmacro defn+opts
   "Define a function with defn-like syntax and option support."
   [fname & fdecl]
-  (let [{:keys [meta-map body-list]} (process-defn-decl fdecl)]
+  (let [{:keys [meta-map body-list]} (process-defn-decl fname, fdecl)]
     (assert-args defn+opts 
       (= 1 (count body-list)) "that only one body is specified")
     (let [[params & body] (first body-list),
