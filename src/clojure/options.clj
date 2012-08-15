@@ -383,6 +383,7 @@
       (alter-meta! #'~fname assoc :arglists (list '~(conj (vec param-symb-list) '& 'options)))
       #'~fname)))
 
+; TODO: Remove self-reference in recursive functions.
 ; Does not support using previous declared parameters as default values.
 (defmacro defn+opts
   "Define a function with defn-like syntax and option support."
