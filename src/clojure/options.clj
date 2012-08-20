@@ -341,8 +341,8 @@
             (recur (next option-args), (conj! option-map a))
           :else
             (throw 
-              (IllegalArgumentException. 
-                (format "Found unknown value of unknown type \"%s\" in the optional argument list!" (type a))))))
+              (IllegalArgumentException.
+                (format "Found unexpected value \"%s\" of unexpected type \"%s\" in the optional argument list! Remaining args: %s" a (type a) option-args)))))
       (persistent! option-map))))
 
 (defn ^{:skip-wiki true} create-defn+opts-decl
