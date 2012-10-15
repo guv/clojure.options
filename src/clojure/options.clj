@@ -74,13 +74,21 @@
       (when more
         (list* `assert-args fnname more)))))
 
+(defn find-option-doc-string
+  "Finds the doc string with the given pattern"
+  [doc-format, doc-string, option-name]
+  (re-find (re-pattern (format doc-format option-name)) doc-string))
 
+
+(def xml-doc-format "<%1$s>(.*)</%1$s>")
+(def short-doc-format "<%1$s>(.*)</>")
 
 (defn ^{:skip-wiki true} add-option-doc
   "Add option documentation from the doc-string to the option information."
   [doc-string, option-kv-pair]
   (if doc-string
-    (if-let [match (re-find (re-pattern (format "<%1$s>(.*)</%1$s>" (first option-kv-pair))) doc-string)]
+    (if-let [match (or (find-option-doc-string xml-doc-format,   doc-string, (first option-kv-pair)) 
+                       (find-option-doc-string short-doc-format, doc-string, (first option-kv-pair)))]
       (assoc-in option-kv-pair [1 :doc] (second match))
       option-kv-pair)
     option-kv-pair))
@@ -173,7 +181,9 @@
   [options, [param-key default-value]]
   (let [param-symb (-> param-key name symbol)]
     (reduce
-      #(assoc-in %1 [%2 param-symb :default] default-value)
+      #(if (contains? (get %1 %2) param-symb) 
+         (assoc-in %1 [%2 param-symb :default] default-value)
+         %1)
       options
       (keys options))))
 
@@ -268,9 +278,9 @@
 		(string/trimr
 			(reduce
 			  (fn [fdoc, option]
-			    (string/replace fdoc
-			      (re-pattern (format "<%1$s>.*</%1$s>" (:name option)))
-			      ""))
+			    (-> fdoc
+            (string/replace (re-pattern (format xml-doc-format (:name option))) "")
+            (string/replace (re-pattern (format short-doc-format (:name option))) "")))
 			  fn-doc
 			  options))
     ""))
@@ -345,6 +355,11 @@
                 (format "Found unexpected value \"%s\" of unexpected type \"%s\" in the optional argument list! Remaining args: %s" a (type a) option-args)))))
       (persistent! option-map))))
 
+(defn ->option-map
+  "Marks a given map as option map."
+  [m]
+  (vary-meta m assoc ::option-map true))
+
 (defn ^{:skip-wiki true} create-defn+opts-decl
   "Creates the code that declares a function with optional parameters and meta information about them."
   [fname, meta-map, param-symb-list, opt-decl, body]
@@ -377,7 +392,7 @@
           (~check-choice ~opt-name)
           (let [~@(when (seq default-map) [opt-name `(merge ~default-map ~opt-name)]),
                 {:keys ~option-symbols} ~opt-name,
-		            ~opt-name (vary-meta ~opt-name assoc ::option-map true)]
+		            ~opt-name (->option-map ~opt-name)]
             ~@body)))
       (alter-meta! #'~fname merge '~options-meta-map)
       (alter-meta! #'~fname assoc :arglists (list '~(conj (vec param-symb-list) '& 'options)))

@@ -130,6 +130,22 @@
   (int->str 13 :base 3) => "111"
   (int->str 13 :base 9) => "14")
 
+
+(defn+opts foo-bar
+  "This is the foo-bar function.
+  <a>Parameter a</a>
+  <b>Parameter b</>
+  <c>Parameter c</><d>Parameter d</d>
+  "  
+  [x | {a 1, b 2, c 3, d 4}]
+  (+ x a b c d))
+
+(facts "abbreviated option doc format"
+  (-> #'foo-bar meta :doc) => (and #"This is the foo-bar function\."
+                                   #":a" #"Parameter a" #":b" #"Parameter b" #":c" #"Parameter c" #":d" #"Parameter d")
+  (-> #'int->str meta :doc) =not=> (or #"<a>" #"<b>" #"<c>" #"<d>" #"</a>" #"</d>" #"</>"))
+
+
 (require 'clojure.string)
 
 (defn+opts convert-ints
