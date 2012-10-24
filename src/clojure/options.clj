@@ -80,8 +80,8 @@
   (re-find (re-pattern (format doc-format option-name)) doc-string))
 
 
-(def xml-doc-format "<%1$s>(.*)</%1$s>")
-(def short-doc-format "<%1$s>(.*)</>")
+(def xml-doc-format "(?s)<%1$s>(.*?)</%1$s>")
+(def short-doc-format "(?s)<%1$s>(.*?)</>")
 
 (defn ^{:skip-wiki true} add-option-doc
   "Add option documentation from the doc-string to the option information."
@@ -245,6 +245,7 @@
     :else
      d))
 
+
 (defn ^{:skip-wiki true} spacing-fmt
   "Create a format string for the given attribute key in the given options map 
   that ensures right alignment of the strings generated with that format for the attribute values.
@@ -257,18 +258,33 @@
         "%s"))
     "%s"))
 
+(defn underline
+  ([s, linebreak]
+    (underline s, linebreak, "⎺"))
+  ([s, linebreak, character]
+    (apply str s, linebreak, (repeat (count s) character))))
+
 (defn ^{:skip-wiki true} option-str
   "Create a string for the given options map."
   [nl, options]
-  (let [name-fmt (spacing-fmt options, :name),
-        doc-fmt  (spacing-fmt options, :doc )]
+  (let [name-fmt (spacing-fmt options, :name)]
 	  (->> options 
-	    (map 
-        #(str ":" (format name-fmt (:name %)) 
-           (when (:doc %) (str "  " (format doc-fmt (:doc %)))) "  " 
-           (if (contains? % :alternatives)
-             (format "[choices = *%s]" (string/join ", " (map default-str (cons (:default %) (:alternatives %)))) )
-             (format "[default = %s]" (default-str (:default %))))))
+	    (map
+        #(let [head (str ":" (format name-fmt (:name %))
+                      " "
+                      (if (contains? % :alternatives)
+                        (format "[choices = *%s]" (string/join ", " (map default-str (cons (:default %) (:alternatives %)))) )
+                        (format "[default = %s]" (default-str (:default %))))),
+               head-len (count head)]
+           (str nl head ;nl (underline head, nl)
+             (when (:doc %)
+               ; split doc into lines
+               (->> (string/split (:doc %) #"\n")
+                 ; trim lines
+                 (map string/trim)
+                 ; ident lines
+                 (interleave (repeat (str nl "  ")))
+                 (apply str))))))
 	    (string/join nl))))
 
 (defn ^{:skip-wiki true} remove-option-doc
@@ -292,14 +308,15 @@
     (if (or my-options (and (seq other-options) (some #(some seq (val %)) other-options)))
       (str 
         (when fn-doc
-          (str (remove-option-doc my-options, fn-doc) nnl0))
-        "The following options can be specified:"
+          (str (remove-option-doc my-options, fn-doc) "\n"))
+        nl0
+        (underline "The following options can be specified:" nl0)
         (when (seq my-options)
-          (str nl1 (option-str nl1, my-options)))
+          (str "\n" (option-str nl1, my-options)))
         (when (seq other-options) nnl1)
         (->> other-options
           (filter #(-> % val vals seq))
-          (map #(str "Passed to function " (key %) ":" nl2 (option-str nl2, (vals (val %)))) )
+          (map #(str (underline (str "Passed to function " (key %) ":") nl1) (option-str nl2, (vals (val %)))) )
           (string/join nnl1)))
       fn-doc)))
 

@@ -1,4 +1,4 @@
-(defproject clojure.options "0.2.3"
+(defproject clojure.options "0.2.4"
   :description "Advanced support for optional arguments in functions declared with defn-like syntax."
   :url "http://github.com/guv/clojure.options/"
   :license {:name "Eclipse Public License", :url "http://www.eclipse.org/legal/epl-v10.html"}
