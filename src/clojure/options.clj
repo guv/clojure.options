@@ -179,6 +179,11 @@
 
 (defn ^{:skip-wiki true} update-parameter-defaults
   [options, [param-key default-value]]
+  (when-not (keyword? param-key)
+    (throw
+      (IllegalArgumentException.
+        (format "Expected a keyword but found: %s\nMost likely the number of mandatory parameters of the called defn+opts function changed!" 
+                (pr-str param-key)))))
   (let [param-symb (-> param-key name symbol)]
     (reduce
       #(if (contains? (get %1 %2) param-symb) 
