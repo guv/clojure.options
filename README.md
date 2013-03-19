@@ -13,7 +13,7 @@ then the docstring of ```f``` will contain information about the optional parame
 Add the following to your ```project.clj``` to let Leiningen install ```clojure.options``` for you:
 
 ```clj
-:dependencies [[clojure.options "0.2.4"]]
+:dependencies [[clojure.options "0.2.6"]]
 ```
 
 ## Usage
