@@ -89,6 +89,6 @@ The documentation of ```convert-ints``` looks like:
 
 ## License
 
-Copyright © 2012 Gunnar Völkel
+Copyright © 2012-2013 Gunnar Völkel
 
 Distributed under the Eclipse Public License, the same as Clojure.
