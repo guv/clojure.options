@@ -438,8 +438,44 @@
         (println (str "WARNING: No optional parameter specification given after \"|\" in parameter declaration of \"" (str fname) "\"!")))
       (create-defn+opts-decl fname, meta-map, symb-list, opt-decl, body))))
 
+
 (defmacro defn+opts-
   "Define a private function with defn-like syntax and option support."
   [fname & fdecl]
-  (list* `defn+opts (with-meta fname (assoc (meta fname) :private true)) fdecl)  
-)
+  (list* `defn+opts (with-meta fname (assoc (meta fname) :private true)) fdecl))
+
+
+(defmacro options->
+  "Threads the expr through the forms similar to -> inserting it as the second item and if the form represents a defn+opts function appending the options map."
+  [expr, options, & forms]
+  (loop [expr expr, forms forms]
+    (if forms
+      (let [form (first forms)
+            threaded (if (seq? form)
+                       (with-meta
+                         (if (option-fn? (first form))
+                           `(~(first form) ~expr ~@(next form) ~options)
+                           `(~(first form) ~expr ~@(next form))) (meta form))
+                       (if (option-fn? form)
+                         (list form expr options)
+                         (list form expr)))]
+        (recur threaded, (next forms)))
+      expr)))
+
+
+(defmacro options->>
+  "Threads the expr through the forms similar to ->> inserting it as the last item and if the form represents a defn+opts function appending the options map."
+  [expr, options, & forms]
+  (loop [expr expr, forms forms]
+    (if forms
+      (let [form (first forms)
+            threaded (if (seq? form)
+                       (with-meta
+                         (if (option-fn? (first form))
+                           `(~(first form) ~@(next form) ~expr ~options)
+                           `(~(first form) ~@(next form) ~expr)) (meta form))
+                       (if (option-fn? form)
+                         (list form expr options)
+                         (list form expr)))]
+        (recur threaded, (next forms)))
+      expr)))
