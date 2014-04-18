@@ -13,7 +13,7 @@ then the docstring of ```f``` will contain information about the optional parame
 Add the following to your ```project.clj``` to let Leiningen install ```clojure.options``` for you:
 
 ```clj
-:dependencies [[clojure.options "0.2.8"]]
+:dependencies [[clojure.options "0.2.9"]]
 ```
 
 ## Usage
@@ -89,6 +89,6 @@ The documentation of ```convert-ints``` looks like:
 
 ## License
 
-Copyright © 2012-2013 Gunnar Völkel
+Copyright © 2012-2014 Gunnar Völkel
 
 Distributed under the Eclipse Public License, the same as Clojure.
