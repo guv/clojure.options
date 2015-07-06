@@ -74,10 +74,15 @@
       (when more
         (list* `assert-args fnname more)))))
 
+(defn escape-specials
+  [option-name]
+  (string/replace option-name, #"[\?\+\*]"
+    (fn [s] (str "\\" s))))
+
 (defn find-option-doc-string
   "Finds the doc string with the given pattern"
   [doc-format, doc-string, option-name]
-  (re-find (re-pattern (format doc-format option-name)) doc-string))
+  (re-find (re-pattern (format doc-format (escape-specials option-name))) doc-string))
 
 
 (def xml-doc-format "(?s)<%1$s>(.*?)</%1$s>")
@@ -300,8 +305,8 @@
 			(reduce
 			  (fn [fdoc, option]
 			    (-> fdoc
-            (string/replace (re-pattern (format xml-doc-format (:name option))) "")
-            (string/replace (re-pattern (format short-doc-format (:name option))) "")))
+            (string/replace (re-pattern (format xml-doc-format (escape-specials (:name option)))) "")
+            (string/replace (re-pattern (format short-doc-format (escape-specials (:name option)))) "")))
 			  fn-doc
 			  options))
     ""))
