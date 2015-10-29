@@ -1,4 +1,4 @@
-(defproject clojure.options "0.2.10-SNAPSHOT"
+(defproject clojure.options "0.2.10"
   :description "Advanced support for optional arguments in functions declared with defn-like syntax."
   :url "http://github.com/guv/clojure.options/"
   :license {:name "Eclipse Public License", :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -15,6 +15,6 @@
   :aliases {"all" ["with-profile" "dev,1.2:dev,1.3:dev"]
             "cleanbuild" ["do" "clean," "compile" ":all"]}
 
-  :autodoc {:copyright "Copyright 2011-2014 by Gunnar Völkel"}
+  :autodoc {:copyright "Copyright 2011-2015 by Gunnar Völkel"}
   :test-paths ["test"]
 )
